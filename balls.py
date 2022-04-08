@@ -17,6 +17,7 @@ class GameBase():
         
     def rem(self):
         self.visible = False
+
         del self
 
     def mouseUp(self):
@@ -73,7 +74,7 @@ class Player(GameBase, sphere):
                     normvec = norm(self.pos-obj.pos)
                     self.vel = mag(self.vel)*normvec*0.7
                     self.gainPoint()
-                    obj.remove()
+                    obj.reset()
                     self.canMove = True
 
                 elif obj.type == "platform":
@@ -86,11 +87,11 @@ class Player(GameBase, sphere):
         if not self.slowmotion:
             self.pos += self.vel
             self.vel.y -= self.gravitation 
-            self.vel.x *= self.linearDrag   # Linear Drag           
+            self.vel.x -= self.linearDrag * self.vel.x  # Linear Drag           
         else:
             self.pos += self.vel * self.slowmoAmount
             self.vel.y -= self.gravitation * self.slowmoAmount
-            self.vel.x *= self.linearDrag * self.slowmoAmount
+            self.vel.x -= self.linearDrag * self.vel.x * self.slowmoAmount
     
 
     def gainPoint(self, amount = 1):
@@ -105,7 +106,7 @@ class Player(GameBase, sphere):
     force = 7
     jumpForce = 20
     gravitation = 0.1
-    linearDrag = 1 # Percent
+    linearDrag = 0 # Percent
     
     points = 0 
     type = "player"
@@ -123,31 +124,30 @@ class Trail(GameBase, sphere):
     def update(self):
         self.radius -= self.startRadius/20
         if self.radius == 0:
-            self.rem(self)
+            self.rem()
 
     
 
 class Point(GameBase, sphere):
     def __init__(self, **args) -> None:
         super().__init__(**args)
-        self.pos = vector.random()*300
-        self.pos.z = 0
         self.color = vec(0,1,0)
         self.radius = 7.5
         self.type = "point"
+        self.reset()
 
-    def reset(self):
+
+    def reset(self, player = None):
         self.pos = vector.random()*300
         self.pos.z = 0
+
 
 
 
 class Platform(GameBase, box):
     def __init__(self, **args):
         super().__init__(**args)
-        
         self.type = "platform"
-        
 
         if "size" in args:
             self.size = args["size"]
@@ -172,10 +172,10 @@ def mouseDown():
 
 def update():
     k = keysdown()
-    if "esc" in k: quitProg()
-    if "r" in k: reset()
     for i in objects:
         i.update()
+    if "esc" in k: quitProg()
+    if "r" in k: reset()
     
 
 def detectCol(obj1, obj2):
@@ -200,7 +200,7 @@ def detectCol(obj1, obj2):
 
 def reset():
     for i in objects:
-        i.reset()
+        i.rem()
     
     start()
 
@@ -238,8 +238,3 @@ while True:
     rate(60)
     update()
     
-
-
-
-
-os.kill(os.getpid(), signal.SIGTERM)
