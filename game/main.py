@@ -34,12 +34,15 @@ class GameBase():
 class Player(GameBase, sphere):
     def __init__(self, **args) -> None:
         super().__init__(**args)
+        for i in range(self.trajectoryLength):
+            Trajectory(number=i)
+
 
     def mouseUp(self):
         if not self.canMove:
             return
-        prelvec = self.pos - scene.mouse.pos
-        self.vel = prelvec.norm() * self.force * self.charge
+        
+        self.vel = self.getShootDirection * self.force * self.charge
         self.charge = 0
         self.charging = False
         self.slowmotion = False
@@ -52,6 +55,9 @@ class Player(GameBase, sphere):
         self.startCharge = time.time()
         self.charging = True
         self.slowmotion = True
+
+    def getShootDirection(self):
+        return (self.pos - scene.mouse.pos).norm()
 
     def update(self):
         self.charge = time.time() - self.startCharge if time.time() - self.startCharge < self.chargeTimeLimit else self.chargeTimeLimit
@@ -89,6 +95,11 @@ class Player(GameBase, sphere):
             self.vel.y -= self.gravitation * self.slowmoAmount
             self.vel.x -= self.linearDrag * self.vel.x * self.slowmoAmount
 
+        for i in self.trajectory:
+            i.visible = self.showTrajectory
+            i.pos = self.pos + self.getShootDirection * i.number
+        
+
     def gainPoint(self, amount=1):
         self.points += amount
 
@@ -108,6 +119,10 @@ class Player(GameBase, sphere):
     slowmoAmount = 0.3
     trail = []
 
+    showTrajectory = True
+    trajectoryLength = 5
+    trajectory = []
+
 
 class Trail(GameBase, sphere):
     def __init__(self, **args):
@@ -118,6 +133,11 @@ class Trail(GameBase, sphere):
         self.radius -= self.startRadius / 20
         if self.radius == 0:
             self.rem()
+
+class Trajectory(GameBase, sphere):
+    def __init__(self, **args) -> None:
+        super().__init__(**args)
+        self.visible = False
 
 
 class Point(GameBase, sphere):
