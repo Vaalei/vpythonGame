@@ -35,14 +35,17 @@ class Player(GameBase, sphere):
     def __init__(self, **args) -> None:
         super().__init__(**args)
         for i in range(self.trajectoryLength):
-            Trajectory(number=i)
+            self.trajectory.append(Trajectory(number=i))
 
+    def getShootDirection(self):
+        tempVec = self.pos - scene.mouse.pos
+        return tempVec.norm()
 
     def mouseUp(self):
         if not self.canMove:
             return
         
-        self.vel = self.getShootDirection * self.force * self.charge
+        self.vel = self.getShootDirection() * self.force * self.charge
         self.charge = 0
         self.charging = False
         self.slowmotion = False
@@ -56,11 +59,9 @@ class Player(GameBase, sphere):
         self.charging = True
         self.slowmotion = True
 
-    def getShootDirection(self):
-        return (self.pos - scene.mouse.pos).norm()
-
     def update(self):
-        self.charge = time.time() - self.startCharge if time.time() - self.startCharge < self.chargeTimeLimit else self.chargeTimeLimit
+        if self.charging:
+            self.charge = time.time() - self.startCharge if time.time() - self.startCharge < self.chargeTimeLimit else self.chargeTimeLimit
         chargeLabel.text = f"Charge: {self.charge / self.chargeTimeLimit * 100:.0f}%"
 
         Trail(pos=self.pos, radius=self.radius / 1.5, color=vec(0.9, 0.9, 0.9))
@@ -97,13 +98,14 @@ class Player(GameBase, sphere):
 
         for i in self.trajectory:
             i.visible = self.showTrajectory
-            i.pos = self.pos + self.getShootDirection * i.number
+            i.pos = self.pos + self.getShootDirection() * i.number * self.charge * 20
         
 
     def gainPoint(self, amount=1):
         self.points += amount
 
     charge = 0
+    charging = False
     chargeTimeLimit = 1     # In seconds
     startCharge = 0
     canMove = True
@@ -120,7 +122,7 @@ class Player(GameBase, sphere):
     trail = []
 
     showTrajectory = True
-    trajectoryLength = 5
+    trajectoryLength = 8
     trajectory = []
 
 
@@ -135,9 +137,10 @@ class Trail(GameBase, sphere):
             self.rem()
 
 class Trajectory(GameBase, sphere):
-    def __init__(self, **args) -> None:
+    def __init__(self, number=1, **args) -> None:
         super().__init__(**args)
         self.visible = False
+        self.number = number
 
 
 class Point(GameBase, sphere):
