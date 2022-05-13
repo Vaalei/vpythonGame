@@ -44,6 +44,8 @@ class Player(GameBase, sphere):
     def mouseUp(self):
         if not self.canMove:
             return
+        if not self.charging:
+            return
         
         self.vel = self.getShootDirection() * self.force * self.charge
         self.charge = 0
@@ -64,7 +66,7 @@ class Player(GameBase, sphere):
             self.charge = time.time() - self.startCharge if time.time() - self.startCharge < self.chargeTimeLimit else self.chargeTimeLimit
         chargeLabel.text = f"Charge: {self.charge / self.chargeTimeLimit * 100:.0f}%"
 
-        Trail(pos=self.pos, radius=self.radius / 1.5, color=vec(0.9, 0.9, 0.9))
+        Trail(pos=self.pos, radius=self.radius / 1.5, color=vec(0.9, 0.9, 0.9), parent=self)
 
         lastCollision = None
         for obj in objects:
@@ -103,6 +105,7 @@ class Player(GameBase, sphere):
 
     def gainPoint(self, amount=1):
         self.points += amount
+        pointLabel.text = f"Points: {self.points}"
 
     charge = 0
     charging = False
@@ -127,13 +130,18 @@ class Player(GameBase, sphere):
 
 
 class Trail(GameBase, sphere):
-    def __init__(self, **args):
+    def __init__(self, parent=None, **args):
         super().__init__(**args)
         self.startRadius = self.radius
+        self.parent = parent
 
     def update(self):
-        self.radius -= self.startRadius / 20
-        if self.radius == 0:
+        if self.parent and self.parent.slowmotion:
+            self.radius -= self.startRadius / (20 / self.parent.slowmoAmount)
+        else:
+            self.radius -= self.startRadius / 20
+
+        if self.radius <= 0:
             self.rem()
 
 class Trajectory(GameBase, sphere):
@@ -141,6 +149,7 @@ class Trajectory(GameBase, sphere):
         super().__init__(**args)
         self.visible = False
         self.number = number
+        self.radius = 5
 
 
 class Point(GameBase, sphere):
@@ -214,6 +223,9 @@ def detectCol(obj1, obj2):
 def reset():
     for i in objects:
         i.rem()
+    
+    player.points = 0
+    pointLabel.text = f"Points: {player.points}"
 
     start()
 
@@ -245,6 +257,7 @@ scene.bind("mouseup", mouseUp)
 # scene.bind("esc", quitProg)
 
 chargeLabel = label(pos=vec(-370, 200, 0), text="Charge: 0%", height=40, box=False, color=vec(1, 0, 0), font='sans')
+pointLabel = label(pos=vec(-370, 160, 0), text="Points: 0", height=40, box=False, color=vec(0, 1, 0), font='sans')
 
 while True:
     rate(60)
